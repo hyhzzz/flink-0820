@@ -5,8 +5,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.bean.TableProcess;
 import com.atguigu.gmall.realtime.func.TableProcessFunction;
 import com.atguigu.gmall.realtime.utils.MyKafkaUtil;
-import org.apache.flink.runtime.state.filesystem.FsStateBackend;
-import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -30,12 +28,15 @@ public class BaseDBApp {
         env.setParallelism(4);
 
         //1.3 为了保证精准一次性 需要设置checkpoint检查点 并且设置相关的参数 默认就是EXACTLY_ONCE
-        env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
+//        env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         //1.4设置检查点超时时间
-        env.getCheckpointConfig().setCheckpointTimeout(60000);
+//        env.getCheckpointConfig().setCheckpointTimeout(60000);
         //1.5设置状态后端
-        env.setStateBackend(new FsStateBackend("hdfs://hadoop102:8020/gmall/flink/checkpoint/basedbApp"));
+//        env.setStateBackend(new FsStateBackend("hdfs://hadoop102:8020/gmall/flink/checkpoint/basedbApp"));
 
+        //重启策略  如果说没有开启Checkpoint 那么重启策略就是noRestart 表示不重启
+        //重启策略  如果说开启Checkpoint 那么重启策略会产生自动帮你重启  重启integer = maxvalue
+        //env.setRestartStrategy(RestartStrategies.noRestart());
 
         //TODO 2.从kafka的ods层读取数据
         String topic = "ods_base_db_m";
@@ -65,19 +66,21 @@ public class BaseDBApp {
 
 //        filteredDS.print("json>>>>");
 
-        //TODO 5.动态分流 事实表放到主流 写回到kafka的dwd层，如果是维度表 通过侧输出流 写入到hbase
-        //5.1 定义输出到hbase的侧输出流标签
-        OutputTag<JSONObject> hbaseTag = new OutputTag<JSONObject>(TableProcess.SINK_TYPE_HBASE) {
-        };
+        //TODO 5. 动态分流  事实表放到主流，写回到kafka的DWD层；如果维度表，通过侧输出流，写入到Hbase
+        //5.1定义输出到Hbase的侧输出流标签
+        OutputTag<JSONObject> hbaseTag = new OutputTag<JSONObject>(TableProcess.SINK_TYPE_HBASE){};
 
-        //5.2 主流  写回到kafka的数据
+        //5.2 主流 写回到Kafka的数据
         SingleOutputStreamOperator<JSONObject> kafkaDS = filteredDS.process(
                 new TableProcessFunction(hbaseTag)
         );
-
-        //5.3 获取侧输出流，写到hbase的数据
+        //5.3获取侧输出流    写到Hbase的数据
         DataStream<JSONObject> hbaseDS = kafkaDS.getSideOutput(hbaseTag);
 
+        kafkaDS.print("事实>>>>");
+        hbaseDS.print("维度>>>>");
+
+        //TODO 6.将维度数据保存到Phoenix对应的维度表中
 
         //执行任务
         env.execute();
