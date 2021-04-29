@@ -18,6 +18,7 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 
@@ -30,6 +31,12 @@ import java.util.Date;
  * 从Kafka中读取ods层用户行为日志数据
  */
 public class BseLogApp {
+
+    //定义要发送的主题
+    private static final String TOPIC_START = "dwd_start_log";
+    private static final String TOPIC_DISPLAYS = "dwd_displays_log";
+    private static final String TOPIC_PAGE = "dwd_page_log";
+
     public static void main(String[] args) throws Exception {
 
         //TODO 1.创建环境
@@ -140,9 +147,11 @@ public class BseLogApp {
         // 侧输出流：1.接收迟到数据  2.分流
 
         //定义启动侧输出标签
-        OutputTag<String> startTag = new OutputTag<String>("start"){};
+        OutputTag<String> startTag = new OutputTag<String>("start") {
+        };
         //定义曝光侧输出流标签
-        OutputTag<String> displaysTag = new OutputTag<String>("displays"){};
+        OutputTag<String> displaysTag = new OutputTag<String>("displays") {
+        };
 
         SingleOutputStreamOperator<String> pageDS = jsonDSWithFlag.process(
                 new ProcessFunction<JSONObject, String>() {
@@ -187,13 +196,23 @@ public class BseLogApp {
         DataStream<String> startDS = pageDS.getSideOutput(startTag);
         DataStream<String> displayDS = pageDS.getSideOutput(displaysTag);
 
-        //打印输出测试
-//        pageDS.print("page>>>>");
-//        startDS.print("start>>>");
-//        displayDS.print("display>>>");
+        //打印输出
+        pageDS.print("page>>>>");
+        startDS.print("start>>>");
+        displayDS.print("display>>>");
 
 
+        //TODO 6.将不同流的数据写回到kafka的不同topic中 （DWD层）
+        FlinkKafkaProducer<String> startSink = MyKafkaUtil.getKafkaSink(TOPIC_START);
+        startDS.addSink(startSink);
 
+        FlinkKafkaProducer<String> displaysSink = MyKafkaUtil.getKafkaSink(TOPIC_DISPLAYS);
+        displayDS.addSink(displaysSink);
+
+        FlinkKafkaProducer<String> pageSink = MyKafkaUtil.getKafkaSink(TOPIC_PAGE);
+        pageDS.addSink(pageSink);
+
+        //执行任务
         env.execute();
 
     }
