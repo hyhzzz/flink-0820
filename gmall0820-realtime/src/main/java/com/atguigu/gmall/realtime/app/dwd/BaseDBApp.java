@@ -3,14 +3,21 @@ package com.atguigu.gmall.realtime.app.dwd;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.bean.TableProcess;
+import com.atguigu.gmall.realtime.func.DimSink;
 import com.atguigu.gmall.realtime.func.TableProcessFunction;
 import com.atguigu.gmall.realtime.utils.MyKafkaUtil;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
+import org.apache.flink.streaming.connectors.kafka.KafkaSerializationSchema;
 import org.apache.flink.util.OutputTag;
+import org.apache.kafka.clients.producer.ProducerRecord;
+
+import javax.annotation.Nullable;
 
 /**
  * @author chujian
@@ -68,7 +75,8 @@ public class BaseDBApp {
 
         //TODO 5. 动态分流  事实表放到主流，写回到kafka的DWD层；如果维度表，通过侧输出流，写入到Hbase
         //5.1定义输出到Hbase的侧输出流标签
-        OutputTag<JSONObject> hbaseTag = new OutputTag<JSONObject>(TableProcess.SINK_TYPE_HBASE){};
+        OutputTag<JSONObject> hbaseTag = new OutputTag<JSONObject>(TableProcess.SINK_TYPE_HBASE) {
+        };
 
         //5.2 主流 写回到Kafka的数据
         SingleOutputStreamOperator<JSONObject> kafkaDS = filteredDS.process(
@@ -81,6 +89,27 @@ public class BaseDBApp {
         hbaseDS.print("维度>>>>");
 
         //TODO 6.将维度数据保存到Phoenix对应的维度表中
+        hbaseDS.addSink(new DimSink());
+
+        //TODO 7.将事实数据写回到kafka中的WDW层
+        FlinkKafkaProducer<JSONObject> kafkaSink = MyKafkaUtil.getKafkaSinkBySchema(
+                new KafkaSerializationSchema<JSONObject>() {
+                    @Override
+                    public void open(SerializationSchema.InitializationContext context) throws Exception {
+                        System.out.println("kafka序列化");
+                    }
+
+                    @Override
+                    public ProducerRecord<byte[], byte[]> serialize(JSONObject jsonObj, @Nullable Long aLong) {
+                        String sinkTopic = jsonObj.getString("sink_table");
+                        JSONObject dataJsonObj = jsonObj.getJSONObject("data");
+                        return new ProducerRecord<>(sinkTopic, dataJsonObj.toString().getBytes());
+                    }
+                }
+        );
+
+        kafkaDS.addSink(kafkaSink);
+
 
         //执行任务
         env.execute();
