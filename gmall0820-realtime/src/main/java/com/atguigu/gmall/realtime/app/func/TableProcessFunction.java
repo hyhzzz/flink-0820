@@ -1,4 +1,4 @@
-package com.atguigu.gmall.realtime.func;
+package com.atguigu.gmall.realtime.app.func;
 
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.bean.TableProcess;

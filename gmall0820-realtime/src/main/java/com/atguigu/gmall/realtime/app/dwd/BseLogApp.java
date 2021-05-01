@@ -9,8 +9,6 @@ import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
 import org.apache.flink.configuration.Configuration;
-import org.apache.flink.runtime.state.filesystem.FsStateBackend;
-import org.apache.flink.streaming.api.CheckpointingMode;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.KeyedStream;
@@ -47,11 +45,11 @@ public class BseLogApp {
 
         //1.3设置checkpoint检查点
         //开启checkpoint 多久执行一次checkpoint,默认就是精准一次
-        env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
+//        env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);
         //设置checkpoint超时时间  超过多长时间就会被废弃
-        env.getCheckpointConfig().setCheckpointTimeout(60000);
+//        env.getCheckpointConfig().setCheckpointTimeout(60000);
         //设置状态后端
-        env.setStateBackend(new FsStateBackend("hdfs://hadoop102:8020/gmall/flink/checkpoint/baselogApp"));
+//        env.setStateBackend(new FsStateBackend("hdfs://hadoop102:8020/gmall/flink/checkpoint/baselogApp"));
 
         //注意 ：这里读取用户的时候读取的是当前操作系统的用户，操作hdfs的时候使用的win用户所以不认识
         //方式一解决 ：hdfs dfs -chmod -R 777 /   设置权限
@@ -168,7 +166,10 @@ public class BseLogApp {
                             //如果是启动日志 输出到启动侧输出流中
                             context.output(startTag, dataStr);
                         } else {
-                            //如果是不是启动日志，获取曝光日志标签
+                            //如果不是启动日志，说明是页面 日志 输出到主流
+                            collector.collect(dataStr);
+
+                            //如果是不是启动日志，获取曝光日志标签（曝光日志中也携带了页面日志）
                             JSONArray displays = jsonObj.getJSONArray("displays");
                             //判断是否为曝光日志
                             if (displays != null && displays.size() > 0) {
@@ -183,9 +184,6 @@ public class BseLogApp {
                                     //转成字符串输出
                                     context.output(displaysTag, displaysJsonObj.toString());
                                 }
-                            } else {
-                                //如果不是曝光日志，说明是页面 日志 输出到主流
-                                collector.collect(dataStr);
                             }
                         }
                     }
