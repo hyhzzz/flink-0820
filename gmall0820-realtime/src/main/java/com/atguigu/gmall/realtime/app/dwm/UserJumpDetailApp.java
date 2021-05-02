@@ -128,7 +128,7 @@ public class UserJumpDetailApp {
                             }
                         }
                 )
-                //3.实际限制模式
+                //3.时间限制模式
                 .within(Time.milliseconds(10000));
 
         //TODO 7.根据CEP表达式筛选流

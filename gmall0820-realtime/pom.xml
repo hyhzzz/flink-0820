@@ -45,8 +45,8 @@
 
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-cep_2.11</artifactId>
-            <version>1.12.0</version>
+            <artifactId>flink-cep_${scala.version}</artifactId>
+            <version>${flink.version}</version>
         </dependency>
 
         <dependency>
@@ -129,6 +129,12 @@
             <groupId>org.apache.flink</groupId>
             <artifactId>flink-runtime-web_2.12</artifactId>
             <version>1.12.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>3.3.0</version>
         </dependency>
 
     </dependencies>
