@@ -176,7 +176,6 @@ public class UserJumpDetailApp {
         DataStream<String> jumpDS = filterDS.getSideOutput(timeoutTag);
 //        jumpDS.print(">>>>>");
 
-
         //TODO 10.将跳出数据写回到kafka的DWM层
         jumpDS.addSink(MyKafkaUtil.getKafkaSink(sinkTopic));
 

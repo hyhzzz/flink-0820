@@ -109,7 +109,7 @@ public class UniqueVisitApp {
 
 
         //TODO 6.向kafka中写回，需要将json转换为string
-        //5.1 json -> string
+        //6.1 json -> string
         SingleOutputStreamOperator<String> kafkaDS = filteredDS.map(jsonObj -> jsonObj.toJSONString());
 
         //6.2 写回到kafka的dwm层
