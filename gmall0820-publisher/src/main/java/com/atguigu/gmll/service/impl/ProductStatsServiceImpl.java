@@ -1,11 +1,13 @@
 package com.atguigu.gmll.service.impl;
 
+import com.atguigu.gmll.bean.ProductStats;
 import com.atguigu.gmll.mapper.ProductStatsMapper;
 import com.atguigu.gmll.service.ProductStatsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * @author chujian
@@ -21,6 +23,22 @@ public class ProductStatsServiceImpl implements ProductStatsService {
     @Override
     public BigDecimal getGMV(int date) {
         return productStatsMapper.getGMV(date);
+    }
+
+
+    @Override
+    public List<ProductStats> getProductStatsByTrademark(int date, int limit) {
+        return productStatsMapper.getProductStatsByTrademark(date,limit);
+    }
+
+    @Override
+    public List<ProductStats> getProductStatsByCategory3(int date, int limit) {
+        return productStatsMapper.getProductStatsByCategory3(date,limit);
+    }
+
+    @Override
+    public List<ProductStats> getProductStatsBySPU(int date, int limit) {
+        return productStatsMapper.getProductStatsBySPU(date,limit);
     }
 
 }
