@@ -41,7 +41,7 @@ public class BseLogApp {
         //1.1创建Flink流式执行环境
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         //1.2设置并行度 ，和kafka分区保持一致
-        env.setParallelism(4);
+        env.setParallelism(1);
 
         //1.3设置checkpoint检查点
         //开启checkpoint 多久执行一次checkpoint,默认就是精准一次

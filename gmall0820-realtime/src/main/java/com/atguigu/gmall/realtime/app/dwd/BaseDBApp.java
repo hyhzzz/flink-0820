@@ -32,7 +32,7 @@ public class BaseDBApp {
         //1.1创建流处理执行环境
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         //1.2 设置并行度  和kafka分区保持一致
-        env.setParallelism(4);
+        env.setParallelism(1);
 
         //1.3 为了保证精准一次性 需要设置checkpoint检查点 并且设置相关的参数 默认就是EXACTLY_ONCE
 //        env.enableCheckpointing(5000, CheckpointingMode.EXACTLY_ONCE);

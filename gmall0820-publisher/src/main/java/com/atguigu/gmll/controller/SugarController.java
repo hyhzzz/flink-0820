@@ -1,11 +1,14 @@
 package com.atguigu.gmll.controller;
 
+import com.atguigu.gmll.bean.KeywordStats;
 import com.atguigu.gmll.bean.ProductStats;
 import com.atguigu.gmll.bean.ProvinceStats;
 import com.atguigu.gmll.bean.VisitorStats;
+import com.atguigu.gmll.service.KeywordStatsService;
 import com.atguigu.gmll.service.ProductStatsService;
 import com.atguigu.gmll.service.ProvinceStatsService;
 import com.atguigu.gmll.service.VisitorStatsService;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,6 +42,86 @@ public class SugarController {
     @Autowired
     VisitorStatsService visitorStatsService;
 
+    @Autowired
+    KeywordStatsService keywordStatsService;
+
+     /*
+        请求路径
+        $API_HOST/api/sugar/keyword
+     */
+
+    @RequestMapping("/keyword")
+    public String getKeywordStats(@RequestParam(value = "date", defaultValue = "0") Integer date,
+                                  @RequestParam(value = "limit", defaultValue = "20") int limit) {
+        if (date == 0) {
+            date = now();
+        }
+        //查询数据
+        List<KeywordStats> keywordStatsList
+                = keywordStatsService.getKeywordStats(date, limit);
+        StringBuilder jsonSb = new StringBuilder("{\"status\":0,\"msg\":\"\",\"data\":[");
+        //循环拼接字符串
+        for (int i = 0; i < keywordStatsList.size(); i++) {
+            KeywordStats keywordStats = keywordStatsList.get(i);
+            if (i >= 1) {
+                jsonSb.append(",");
+            }
+            jsonSb.append("{\"name\":\"" + keywordStats.getKeyword() + "\"," +
+                    "\"value\":" + keywordStats.getCt() + "}");
+        }
+        jsonSb.append("]}");
+        return jsonSb.toString();
+    }
+
+
+    /*
+    请求路径
+    $API_HOST/api/sugar/hr
+     */
+    @RequestMapping("/hr")
+    public String getVisitorStatsByHr(@RequestParam(value = "date", defaultValue = "0") Integer date) {
+        if (date == 0) {
+            date = now();
+        }
+        //从service层中获取分时访问数据
+        List<VisitorStats> visitorStatsByHrList = visitorStatsService.getVisitorStatsByHr(date);
+
+        //因为有的小时可能没有数据，为了把每个小时都展示出来，我们创建一个数组，用来保存每个小时对应的访问情况
+        VisitorStats[] visitorStatsArr = new VisitorStats[24];
+        for (VisitorStats visitorStats : visitorStatsByHrList) {
+            visitorStatsArr[visitorStats.getHr()] = visitorStats;
+        }
+
+        //定义存放小时、uv、pv、新用户的List集合
+        List<String> hrList = new ArrayList<>();
+        List<Long> uvList = new ArrayList<>();
+        List<Long> pvList = new ArrayList<>();
+        List<Long> newVisitorList = new ArrayList<>();
+
+        //对数组进行遍历，将0~23点的数据查询出来，分别放到对应的List集合中保存起来
+        for (int i = 0; i <= 23; i++) {
+            VisitorStats visitorStats = visitorStatsArr[i];
+            if (visitorStats != null) {
+                uvList.add(visitorStats.getUv_ct());
+                pvList.add(visitorStats.getPv_ct());
+                newVisitorList.add(visitorStats.getNew_uv());
+            } else {
+                uvList.add(0L);
+                pvList.add(0L);
+                newVisitorList.add(0L);
+            }
+            //小时位不足2位的时候，前面补0
+            hrList.add(String.format("%02d", i));
+        }
+        //拼接字符串
+        String json = "{\"status\":0,\"data\":{" + "\"categories\":" +
+                "[\"" + StringUtils.join(hrList, "\",\"") + "\"],\"series\":[" +
+                "{\"name\":\"uv\",\"data\":[" + StringUtils.join(uvList, ",") + "]}," +
+                "{\"name\":\"pv\",\"data\":[" + StringUtils.join(pvList, ",") + "]}," +
+                "{\"name\":\"新用户\",\"data\":[" + StringUtils.join(newVisitorList, ",") + "]}]}}";
+        return json;
+
+    }
 
     /*
     请求路径
