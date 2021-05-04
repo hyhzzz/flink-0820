@@ -3,6 +3,7 @@ package com.atguigu.gmall.realtime.app.dws;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.atguigu.gmall.realtime.bean.VisitorStats;
+import com.atguigu.gmall.realtime.utils.ClickHouseUtil;
 import com.atguigu.gmall.realtime.utils.MyKafkaUtil;
 import org.apache.flink.api.common.eventtime.SerializableTimestampAssigner;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
@@ -256,10 +257,9 @@ public class VisitorStatsApp {
         reduceDS.print(">>>>>");
 
         //TODO 9.向Clickhouse中插入数据
-//        reduceDS.addSink(
-//                ClickHouseUtil.getJdbcSink("insert into visitor_stats_0820 values(?,?,?,?,?,?,?,?,?,?,?,?)")
-//        );
-
+        reduceDS.addSink(
+                ClickHouseUtil.getJdbcSink("insert into visitor_stats_0820 values(?,?,?,?,?,?,?,?,?,?,?,?)")
+        );
 
         //执行任务
         env.execute();
